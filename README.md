@@ -6,7 +6,7 @@ It can play rtmp streams and can seek on flv files If keyframes exists as metata
 To test RTMP: You need to use RTMPDataSource class as DataSource. If you want to play live videos via rtmp
 add " live=1" at the end of the url. If i have some time, i gonna make librtmp library as aar file and put it in a repo. 
 
-This project is developed for Butterfly TV <a href="http://www.butterflytv.net/"><img src="http://www.butterflytv.net/wp-content/uploads/2014/08/icon-butterflyTV-150x150.png" width="30"></a>
+This project is developed for Butterfly TV <a href="http://www.butterflytv.net/" style="vertical-align: -moz-middle-with-baseline middle;"><img src="http://www.butterflytv.net/wp-content/uploads/2014/08/icon-butterflyTV-150x150.png" width="30"></a>
 
 <a href="https://play.google.com/store/apps/details?id=com.butterfly">
   <img alt="Get it on Google Play" width="200px" src="https://play.google.com/intl/en_us/badges/images/generic/en-play-badge.png">
