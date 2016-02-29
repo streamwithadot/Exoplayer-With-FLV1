@@ -35,4 +35,5 @@ android {
 
 dependencies {
     compile project(':library')
+    compile 'net.butterflytv.utils:rtmp-client:0.2.1'
 }
