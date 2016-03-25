@@ -80,21 +80,30 @@ import java.util.Map;
       return;
     }
     int type = readAmfType(data);
-    if (type != AMF_TYPE_ECMA_ARRAY) {
-      // Should never happen.
-      throw new ParserException();
+//    if (type != AMF_TYPE_ECMA_ARRAY) {
+//      //   Should never happen.
+//      //aom: actually it can happen for live streams
+//      throw new ParserException();
+//
+//    }
+    if (type == AMF_TYPE_ECMA_ARRAY) {
+      // Set the duration to the value contained in the metadata, if present.
+      Map<String, Object> metadata = readAmfEcmaArray(data);
+      if (metadata.containsKey(KEY_DURATION)) {
+        double durationSeconds = (double) metadata.get(KEY_DURATION);
+        setDurationUs((long) (durationSeconds * C.MICROS_PER_SECOND));
+      }
+      if (metadata.containsKey(KEY_FRAMES)) {
+        HashMap<String, List<Double>> keyFrames = (HashMap<String, List<Double>>) metadata.get(KEY_FRAMES);
+        setKeyFrameTimes(keyFrames.get(KEY_FRAME_TIMES));
+        setKeyFrameFilePositions(keyFrames.get(KEY_FRAME_POSITIONS));
+      }
     }
-    // Set the duration to the value contained in the metadata, if present.
-    Map<String, Object> metadata = readAmfEcmaArray(data);
-    if (metadata.containsKey(KEY_DURATION)) {
-      double durationSeconds = (double) metadata.get(KEY_DURATION);
-      setDurationUs((long) (durationSeconds * C.MICROS_PER_SECOND));
+    else if (type == AMF_TYPE_OBJECT) {
+      Map<String, Object> metadata = readAmfObject(data);
+
     }
-    if (metadata.containsKey(KEY_FRAMES)) {
-      HashMap<String, List<Double>> keyFrames = (HashMap<String, List<Double>>) metadata.get(KEY_FRAMES);
-      setKeyFrameTimes(keyFrames.get(KEY_FRAME_TIMES));
-      setKeyFrameFilePositions(keyFrames.get(KEY_FRAME_POSITIONS));
-    }
+
 
   }
 
