@@ -110,9 +110,17 @@ import java.util.List;
   public static final int TYPE_stco = Util.getIntegerCodeForString("stco");
   public static final int TYPE_co64 = Util.getIntegerCodeForString("co64");
   public static final int TYPE_tx3g = Util.getIntegerCodeForString("tx3g");
+  public static final int TYPE_wvtt = Util.getIntegerCodeForString("wvtt");
   public static final int TYPE_stpp = Util.getIntegerCodeForString("stpp");
   public static final int TYPE_samr = Util.getIntegerCodeForString("samr");
   public static final int TYPE_sawb = Util.getIntegerCodeForString("sawb");
+  public static final int TYPE_udta = Util.getIntegerCodeForString("udta");
+  public static final int TYPE_meta = Util.getIntegerCodeForString("meta");
+  public static final int TYPE_ilst = Util.getIntegerCodeForString("ilst");
+  public static final int TYPE_mean = Util.getIntegerCodeForString("mean");
+  public static final int TYPE_name = Util.getIntegerCodeForString("name");
+  public static final int TYPE_data = Util.getIntegerCodeForString("data");
+  public static final int TYPE_DASHES = Util.getIntegerCodeForString("----");
 
   public final int type;
 

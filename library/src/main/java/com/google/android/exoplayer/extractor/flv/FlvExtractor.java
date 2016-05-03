@@ -125,6 +125,11 @@ public final class FlvExtractor implements Extractor, SeekMap {
   }
 
   @Override
+  public void release() {
+    // Do nothing
+  }
+
+  @Override
   public int read(ExtractorInput input, PositionHolder seekPosition) throws IOException,
       InterruptedException {
     while (true) {
@@ -178,7 +183,7 @@ public final class FlvExtractor implements Extractor, SeekMap {
     int flags = headerBuffer.readUnsignedByte();
     boolean hasAudio = (flags & 0x04) != 0;
     boolean hasVideo = (flags & 0x01) != 0;
-    if (hasAudio && audioReader == null) {
+    if (/*hasAudio &&*/ audioReader == null) {
       audioReader = new AudioTagPayloadReader(extractorOutput.track(TAG_TYPE_AUDIO));
     }
     if (hasVideo && videoReader == null) {

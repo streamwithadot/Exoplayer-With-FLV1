@@ -1,5 +1,43 @@
 # Release notes #
 
+### r1.5.7 ###
+
+* OGG: Support added for OGG.
+* FLAC: Support for FLAC extraction and playback (via an extension).
+* HLS: Multiple audio track support (via Renditions).
+* FMP4: Support multiple tracks in fragmented MP4 (not applicable to
+  DASH/SmoothStreaming).
+* WAV: Support for 16-bit WAV files.
+* MKV: Support non-square pixel formats.
+* Misc bug fixes.
+
+### r1.5.6 ###
+
+* MP3: Fix mono streams playing at 2x speed on some MediaTek based devices
+  (#801).
+* MP3: Fix playback of some streams when stream length is unknown.
+* ID3: Support multiple frames of the same type in a single tag.
+* EIA608: Correctly handle repeated control characters, fixing an issue in which
+  captions would immediately disappear.
+* AVC3: Fix decoder failures on some MediaTek devices in the case where the
+  first buffer fed to the decoder does not start with SPS/PPS NAL units.
+* Misc bug fixes.
+
+### r1.5.5 ###
+
+* DASH: Enable MP4 embedded WebVTT playback (#1185)
+* HLS: Fix handling of extended ID3 tags in MPEG-TS (#1181)
+* MP3: Fix incorrect position calculation in VBRI header (#1197)
+* Fix issue seeking backward using SingleSampleSource (#1193)
+
+### r1.5.4 ###
+
+* HLS: Support for variant selection and WebVtt subtitles.
+* MP4: Support for embedded WebVtt.
+* Improved device compatibility.
+* Fix for resource leak (Issue #1066).
+* Misc bug fixes + minor features.
+
 ### r1.5.3 ###
 
 * Support for FLV (without seeking).
@@ -69,9 +107,10 @@
 
 ### r1.3.2 ###
 
-* DataSource improvements: `DefaultUriDataSource` now handles http://, https://, file://, asset://
-  and content:// URIs automatically. It also handles file:///android_asset/* URIs, and file paths
-  like /path/to/media.mp4 where the scheme is omitted.
+* DataSource improvements: `DefaultUriDataSource` now handles http://, https://,
+  file://, asset:// and content:// URIs automatically. It also handles
+  file:///android_asset/* URIs, and file paths like /path/to/media.mp4 where the
+  scheme is omitted.
 * HLS: Fix for some ID3 events being dropped.
 * HLS: Correctly handle 0x0 and floating point RESOLUTION tags.
 * Mp3Extractor: robustness improvements.
