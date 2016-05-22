@@ -1,5 +1,7 @@
 package com.google.android.exoplayer.extractor.flv;
 
+import android.util.Log;
+
 import com.google.android.exoplayer.C;
 import com.google.android.exoplayer.MediaFormat;
 import com.google.android.exoplayer.ParserException;
@@ -13,6 +15,9 @@ import java.util.LinkedList;
 public class H263PacketReader implements VideoTagPayloadReader.VideoPacketReader{
     // Packet types.
     private boolean hasOutputFormat;
+    private int origWidth;
+    private int origHeight;
+
 
     H263PacketReader(){
         hasOutputFormat = false;
@@ -24,7 +29,7 @@ public class H263PacketReader implements VideoTagPayloadReader.VideoPacketReader
         // Extract some information about the FLV1 stream from the first few bits of the byte array.
         H263PictureData info = new H263PictureData(data);
         //  Just to be safe (totally not necessary), take what the flv tag says.
-        info.frameType = reader.frameType == VideoTagPayloadReader.VIDEO_FRAME_INTRAFRAME ? 0 : 1;
+        info.frameType = (reader.frameType == VideoTagPayloadReader.VIDEO_FRAME_INTRAFRAME ? 0 : 1);
 
         //  Create a new MediaFormat for the MediaCodec to start decoding this stream.
         if(!hasOutputFormat) {
@@ -38,15 +43,20 @@ public class H263PacketReader implements VideoTagPayloadReader.VideoPacketReader
             hasOutputFormat = true;
             //  Consume the rest and wait for next frame
             data.setPosition(data.limit());
-        } {
-            ParsableByteArray convertedData = convertFLV1ToH263(data, info);
-            int len = convertedData.bytesLeft() - 4;
-            reader.output.sampleData(convertedData, len);
-            reader.output.sampleMetadata(timeUs,
-                    reader.frameType ==
-                            VideoTagPayloadReader.VIDEO_FRAME_INTRAFRAME ? C.SAMPLE_FLAG_SYNC : 0,
-                    len, 0, null);
+            origWidth = info.width;
+            origHeight = info.height;
         }
+
+        if(origHeight != info.height || origWidth != info.width){
+            Log.e("PacketReader", "Width or height has changed mid stream!");
+        }
+
+        ParsableByteArray convertedData = convertFLV1ToH263(data, info);
+        int len = convertedData.bytesLeft();
+        reader.output.sampleData(convertedData, len);
+        reader.output.sampleMetadata(timeUs,
+                info.frameType == 0 ? C.SAMPLE_FLAG_SYNC : 0,
+                len, 0, null);
     }
 
     /**=
