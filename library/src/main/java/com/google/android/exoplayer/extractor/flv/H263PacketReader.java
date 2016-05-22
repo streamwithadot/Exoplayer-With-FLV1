@@ -29,7 +29,8 @@ public class H263PacketReader implements VideoTagPayloadReader.VideoPacketReader
         // Extract some information about the FLV1 stream from the first few bits of the byte array.
         H263PictureData info = new H263PictureData(data);
         //  Just to be safe (totally not necessary), take what the flv tag says.
-        if(((info.frameType == 0) ? 0 : 1) != (reader.frameType == VideoTagPayloadReader.VIDEO_FRAME_INTRAFRAME ? 0 : 1)){
+        if(((info.frameType == 0) ? 0 : 1) !=
+                (reader.frameType == VideoTagPayloadReader.VIDEO_FRAME_INTRAFRAME ? 0 : 1)) {
             Log.e("PacketReader", "Frame type doesn't match!");
         }
         info.frameType = (reader.frameType == VideoTagPayloadReader.VIDEO_FRAME_INTRAFRAME ? 0 : 1);
@@ -105,17 +106,18 @@ public class H263PacketReader implements VideoTagPayloadReader.VideoPacketReader
         //  In byte 2, change bit 2 to 0
         h263ByteArray[pos+2] &= ~(1 << (2));
         //  In byte 3, change bit 1,0 to 1,0 respectively.
-        h263ByteArray[pos+3] = (byte) (h263ByteArray[pos+3] | (1 << 1));
-        h263ByteArray[pos+3] = (byte)(h263ByteArray[pos+3] & ~(1));
+        h263ByteArray[pos+3] |= (1 << 1);
+        h263ByteArray[pos+3] &= ~(1);
         //  Byte 4 is 12 or 14 depending on intra or inter frame
         h263ByteArray[pos+4] = (byte)(info.frameType == 0 ? 12 : 14);
         //  Byte 5, change bits 4,3,2,1,0 (five from right) to Quantizer
         //  To do this, 0 out the first 5 bits of byte 6
-        h263ByteArray[pos+5] = (byte)(((h263ByteArray[pos+5] >> 5) << 5));
+        h263ByteArray[pos+5] >>= 5;
+        h263ByteArray[pos+5] <<= 5;
         //  Set the first 5 bits to quantizer
-        h263ByteArray[pos+5] = (byte)(h263ByteArray[pos+5] | ((info.quantizationParam << 3) >> 3));
+        h263ByteArray[pos+5] |= (info.quantizationParam << 3) >> 3;
         //  Byte 6, change bit 7 to 0
-        h263ByteArray[pos+6] = (byte)(h263ByteArray[pos+6] & ~(1 << 7));
+        h263ByteArray[pos+6] &= ~(1 << 7);
 
         //  Package it back into a ParsableByteArray and return it.
         ParsableByteArray newArray = new ParsableByteArray(h263ByteArray);
