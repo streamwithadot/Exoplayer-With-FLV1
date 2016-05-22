@@ -29,6 +29,9 @@ public class H263PacketReader implements VideoTagPayloadReader.VideoPacketReader
         // Extract some information about the FLV1 stream from the first few bits of the byte array.
         H263PictureData info = new H263PictureData(data);
         //  Just to be safe (totally not necessary), take what the flv tag says.
+        if(((info.frameType == 0) ? 0 : 1) != (reader.frameType == VideoTagPayloadReader.VIDEO_FRAME_INTRAFRAME ? 0 : 1)){
+            Log.e("PacketReader", "Frame type doesn't match!");
+        }
         info.frameType = (reader.frameType == VideoTagPayloadReader.VIDEO_FRAME_INTRAFRAME ? 0 : 1);
 
         //  Create a new MediaFormat for the MediaCodec to start decoding this stream.
@@ -188,18 +191,18 @@ public class H263PacketReader implements VideoTagPayloadReader.VideoPacketReader
 
             // Frame type is 2 bits (intra, inter, or disposable inter - 0,1 or 2).
             pendingBytes-=2;
-            int frameType = (int)((headerData >> (pendingBytes)) & 0x3);
+            frameType = (int)((headerData >> (pendingBytes)) & 0x3);
 
             // 1-bit de-blocking flag
             pendingBytes-=1;
-            int deblockingFlag = (int)((headerData >> (pendingBytes)) & 0x1);
+            deblockingFlag = (int)((headerData >> (pendingBytes)) & 0x1);
 
             // 5 bits Quantization parameter (at least 7 more bytes remaining lol)
             pendingBytes-=5;
-            int quantizationParam = (int)((headerData >> (pendingBytes)) & 0x1f);
+            quantizationParam = (int)((headerData >> (pendingBytes)) & 0x1f);
 
             pendingBytes-=1;
-            int extraInfoFlag = (int)((headerData >> (pendingBytes)) & 0x1);
+            extraInfoFlag = (int)((headerData >> (pendingBytes)) & 0x1);
 
             //  Reset the position of the data array back to where it was.
             data.setPosition(startPos);
