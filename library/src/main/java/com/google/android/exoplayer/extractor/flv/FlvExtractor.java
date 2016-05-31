@@ -266,7 +266,7 @@ public final class FlvExtractor implements Extractor, SeekMap {
         int codec = VideoTagPayloadReader.getCodec(data);
         if(codec == VideoTagPayloadReader.VIDEO_CODEC_H263){
           H263PacketReader.H263PictureData info = new H263PacketReader.H263PictureData(data);
-          if(info.version == 0){
+          if(info.version == 1){
             //  Disable video if we are h263 with flv version 1.
             createOutputTrack(true, false);
             input.skipFully(tagDataSize);
