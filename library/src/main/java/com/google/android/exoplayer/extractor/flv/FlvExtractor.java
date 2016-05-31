@@ -19,6 +19,7 @@ import com.google.android.exoplayer.C;
 import com.google.android.exoplayer.extractor.Extractor;
 import com.google.android.exoplayer.extractor.ExtractorInput;
 import com.google.android.exoplayer.extractor.ExtractorOutput;
+import com.google.android.exoplayer.extractor.ExtractorSampleSource;
 import com.google.android.exoplayer.extractor.PositionHolder;
 import com.google.android.exoplayer.extractor.SeekMap;
 import com.google.android.exoplayer.util.ParsableByteArray;
@@ -73,6 +74,9 @@ public final class FlvExtractor implements Extractor, SeekMap {
   private ScriptTagPayloadReader metadataReader;
   private List<Double> keyFrameTimes;
   private List<Double> keyFramePositions;
+
+  // We need to make sure if it is H263 video that the flv version is 0.
+  boolean waitingForFirstVideoFrame = true;
 
   public FlvExtractor() {
     scratch = new ParsableByteArray(4);
@@ -183,7 +187,18 @@ public final class FlvExtractor implements Extractor, SeekMap {
     int flags = headerBuffer.readUnsignedByte();
     boolean hasAudio = (flags & 0x04) != 0;
     boolean hasVideo = (flags & 0x01) != 0;
-    if (/*hasAudio &&*/ audioReader == null) {
+
+    if(waitingForFirstVideoFrame){
+      createOutputTrack(true, false);
+    }
+    // We need to skip any additional content in the FLV header, plus the 4 byte previous tag size.
+    bytesToNextTagHeader = headerBuffer.readInt() - FLV_HEADER_SIZE + 4;
+    parserState = STATE_SKIPPING_TO_TAG_HEADER;
+    return true;
+  }
+
+  private void createOutputTrack(boolean hasAudio, boolean hasVideo){
+    if (hasAudio && audioReader == null) {
       audioReader = new AudioTagPayloadReader(extractorOutput.track(TAG_TYPE_AUDIO));
     }
     if (hasVideo && videoReader == null) {
@@ -194,13 +209,8 @@ public final class FlvExtractor implements Extractor, SeekMap {
     }
     extractorOutput.endTracks();
     extractorOutput.seekMap(this);
-
-    // We need to skip any additional content in the FLV header, plus the 4 byte previous tag size.
-    bytesToNextTagHeader = headerBuffer.readInt() - FLV_HEADER_SIZE + 4;
-    parserState = STATE_SKIPPING_TO_TAG_HEADER;
-    return true;
+    waitingForFirstVideoFrame = false;
   }
-
   /**
    * Skips over data to reach the next tag header.
    *
@@ -250,8 +260,29 @@ public final class FlvExtractor implements Extractor, SeekMap {
     boolean wasConsumed = true;
     if (tagType == TAG_TYPE_AUDIO && audioReader != null) {
       audioReader.consume(prepareTagData(input), tagTimestampUs);
-    } else if (tagType == TAG_TYPE_VIDEO && videoReader != null) {
-      videoReader.consume(prepareTagData(input), tagTimestampUs);
+    } else if (tagType == TAG_TYPE_VIDEO) {
+      if(waitingForFirstVideoFrame){
+        ParsableByteArray data = prepareTagData(input);
+        int codec = VideoTagPayloadReader.getCodec(data);
+        if(codec == VideoTagPayloadReader.VIDEO_CODEC_H263){
+          H263PacketReader.H263PictureData info = new H263PacketReader.H263PictureData(data);
+          if(info.version == 0){
+            //  Disable video if we are h263 with flv version 1.
+            createOutputTrack(true, false);
+            input.skipFully(tagDataSize);
+            wasConsumed = false;
+          } else {
+            createOutputTrack(true, true);
+          }
+        } else {
+          createOutputTrack(true, true);
+        }
+      } else if(videoReader != null){
+        videoReader.consume(prepareTagData(input), tagTimestampUs);
+      } else {
+        input.skipFully(tagDataSize);
+        wasConsumed = false;
+      }
     } else if (tagType == TAG_TYPE_SCRIPT_DATA && metadataReader != null) {
       metadataReader.consume(prepareTagData(input), tagTimestampUs);
       if (metadataReader.getDurationUs() != C.UNKNOWN_TIME_US) {

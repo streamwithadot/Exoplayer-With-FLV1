@@ -25,8 +25,8 @@ import com.google.android.exoplayer.util.ParsableByteArray;
 /* package */ final class VideoTagPayloadReader extends TagPayloadReader {
 
   // Video codec.
-  private static final int VIDEO_CODEC_H263 = 2;
-  private static final int VIDEO_CODEC_AVC = 7;
+  public static final int VIDEO_CODEC_H263 = 2;
+  public static final int VIDEO_CODEC_AVC = 7;
 
   // Frame types.
   public static final int VIDEO_FRAME_INTRAFRAME = 1; // Keyframe
@@ -34,6 +34,7 @@ import com.google.android.exoplayer.util.ParsableByteArray;
 
   // State variables.
   public int frameType;
+  public int videoCodec;
 
   VideoPacketReader packetReader;
 
@@ -49,11 +50,16 @@ import com.google.android.exoplayer.util.ParsableByteArray;
     // Do nothing.
   }
 
+  public static int getCodec(ParsableByteArray data){
+    int header = data.readUnsignedByte();
+    return (header & 0x0F);
+  }
+
   @Override
   protected boolean parseHeader(ParsableByteArray data) throws UnsupportedFormatException {
     int header = data.readUnsignedByte();
     frameType = (header >> 4) & 0x0F;
-    int videoCodec = (header & 0x0F);
+    videoCodec = (header & 0x0F);
     // Support just H.264 and Sorenson H.263 encoded content.
     if(packetReader == null){
       if(videoCodec == VIDEO_CODEC_AVC){

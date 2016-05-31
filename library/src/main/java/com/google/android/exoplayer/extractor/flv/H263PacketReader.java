@@ -129,7 +129,7 @@ public class H263PacketReader implements VideoTagPayloadReader.VideoPacketReader
      * Holds data parsed from an Sequence Header video tag atom.
      */
     @SuppressWarnings("unused")
-    private static final class H263PictureData {
+    public static final class H263PictureData {
         public long startCode, version, temporalRef;
         public int width, height, pictureSize, frameType,
                     deblockingFlag, quantizationParam, extraInfoFlag;
