@@ -188,7 +188,7 @@ public final class FlvExtractor implements Extractor, SeekMap {
     boolean hasAudio = (flags & 0x04) != 0;
     boolean hasVideo = (flags & 0x01) != 0;
 
-    if(waitingForFirstVideoFrame){
+    if(!hasVideo && waitingForFirstVideoFrame){
       createOutputTrack(true, false);
     }
     // We need to skip any additional content in the FLV header, plus the 4 byte previous tag size.
@@ -263,19 +263,23 @@ public final class FlvExtractor implements Extractor, SeekMap {
     } else if (tagType == TAG_TYPE_VIDEO) {
       if(waitingForFirstVideoFrame){
         ParsableByteArray data = prepareTagData(input);
+        int pos = data.getPosition();
         int codec = VideoTagPayloadReader.getCodec(data);
         if(codec == VideoTagPayloadReader.VIDEO_CODEC_H263){
           H263PacketReader.H263PictureData info = new H263PacketReader.H263PictureData(data);
+          data.setPosition(pos);
           if(info.version == 1){
             //  Disable video if we are h263 with flv version 1.
             createOutputTrack(true, false);
-            input.skipFully(tagDataSize);
-            wasConsumed = false;
+            //  Weird hack needed to get out of buffering state.
+            throw new UnsupportedOperationException("Ignore me.");
           } else {
             createOutputTrack(true, true);
+            videoReader.consume(data, tagTimestampUs);
           }
         } else {
           createOutputTrack(true, true);
+          videoReader.consume(data, tagTimestampUs);
         }
       } else if(videoReader != null){
         videoReader.consume(prepareTagData(input), tagTimestampUs);
