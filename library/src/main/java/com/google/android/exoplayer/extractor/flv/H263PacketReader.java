@@ -12,6 +12,7 @@ import java.util.LinkedList;
 /**
  * This will parse the AVC video tag within the flv container.
  */
+@SuppressWarnings("SpellCheckingInspection")
 public class H263PacketReader implements VideoTagPayloadReader.VideoPacketReader{
     // Packet types.
     private boolean hasOutputFormat;
@@ -70,7 +71,9 @@ public class H263PacketReader implements VideoTagPayloadReader.VideoPacketReader
      *
      * H263 Specification: T-REC-H.263-199603-S
      *
-         FLV1: 00000000 00000000 10000vaa aaaaaa01 0iidqqqq qmmmmmm m...
+              CIF:   FLV1: 00000000 00000000 10000vaa aaaaaa01 0iidqqqq qmmmmmm m...
+          640x360:   FLV1: 00000000 00000000 10000vaa aaaaaa00 0wwwwwww whhhhhh hhiidqqq qqmmmmmm m...
+                               0         1      2         3        4        5       6        7
          v - version (0 or 1)
          i - intra/inter/disposable-inter (0 or 1 or 2)
          d - deblocking flag (0 or 1)
@@ -78,7 +81,13 @@ public class H263PacketReader implements VideoTagPayloadReader.VideoPacketReader
          m - macroblockdata
 
 
-         H263: 00000000 00000000 100000aa aaaaaa10 000011i0 000qqqqq mmmmmmmm ...
+     INTER FRAME:   H263: 00000000 00000000 100000aa aaaaaa10 00011100 11100000 00000001 00000i00 10010|010 00100111 11100101 1010|qqqq q0mmmmmmm
+                              0       1        2        3        4         5       6      7(new)   8(new)    9(new)   10(new)  11(new)
+
+     INTRA FRAME:   H263: 00000000 00000000 100000aa aaaaaa10 00011100 11100000 00000001 00000i00 10010qqqq q0mmmmmmm
+                              0       1        2        3        4         5       6      7(new)   8(new)
+
+
          a - temporal ref bits (0 to 256)
          i - intra/inter (0 or 1)
          q - quantizer bits (0 to 32)
@@ -87,37 +96,59 @@ public class H263PacketReader implements VideoTagPayloadReader.VideoPacketReader
     private ParsableByteArray convertFLV1ToH263(ParsableByteArray data, H263PictureData info){
         /*
           Make the following changes to convert flv1 to h263
+          -Make new data array of length+5
+          -Copy bytes 0 to 6 inclusive to new array[0 to 6]
+          -Copy bytes 7 to length-1 inclusive to new array[12-length-1]
+          -Bytes 7,8,9,10,11 will be empty
           -byte 2, change bit 2 to 0
           -byte 3, change bit 1,0 to 1,0
-          -byte 4, change to 12 or 14 depending on intra or inter frame
-          -insert new byte after byte 4 (set to 0), this will be new byte 5
-          -byte 5, change bits 0,1,2,3,4 (five from right) to Quantizer
-          -byte 6, change bit 7 to 0
+          -Set byte 4 to 28
+          -Set byte 5 to -32
+          -Set byte 6 to 1
+          -Set byte 7 to 0 or 4 depending on intra or inter frame
+          -Set byte 8 to -110
+          -Set byte 9 to 39
+          -Set byte 10 to -27
+          -Set byte 11 to (quantizer >> 1) - 96
+          -byte 12, change bit 6,7 to 0,(quantizer & 0x1)
        */
         int pos = data.getPosition();
         // h263 byte array will have one extra byte.
-        byte[] h263ByteArray = new byte[data.data.length + 1];
-        //  Copy bytes 0 to pos+5 from flv stream into new array.
-        System.arraycopy(data.data, 0, h263ByteArray, 0, pos+5);
-        //  Skip byte 6
-        h263ByteArray[5+pos] = 0;
-        //  Copy bytes pos+6 to end from flv stream into new array (at position pos+7 of new array)
-        System.arraycopy(data.data, pos+5, h263ByteArray, pos+6, data.data.length - (pos + 5));
+        int extra = info.frameType == VideoTagPayloadReader.VIDEO_FRAME_INTRAFRAME ? 2 : 5;
+        byte[] h263ByteArray = new byte[data.data.length + extra];
+        //  Copy bytes 0 to 6 from flv stream into new array.
+        System.arraycopy(data.data, 0, h263ByteArray, 0, 7);
+        //  Copy bytes 12 to length-1 inclusive to new array[12-length-1]
+        System.arraycopy(data.data, 7, h263ByteArray, 12, data.data.length - 7);
         //  In byte 2, change bit 2 to 0
         h263ByteArray[pos+2] &= ~(1 << (2));
         //  In byte 3, change bit 1,0 to 1,0 respectively.
         h263ByteArray[pos+3] |= (1 << 1);
         h263ByteArray[pos+3] &= ~(1);
-        //  Byte 4 is 12 or 14 depending on intra or inter frame
-        h263ByteArray[pos+4] = (byte)(info.frameType == 0 ? 12 : 14);
-        //  Byte 5, change bits 4,3,2,1,0 (five from right) to Quantizer
-        //  To do this, 0 out the first 5 bits of byte 6
-        h263ByteArray[pos+5] >>= 5;
-        h263ByteArray[pos+5] <<= 5;
-        //  Set the first 5 bits to quantizer
-        h263ByteArray[pos+5] |= (info.quantizationParam << 3) >> 3;
-        //  Byte 6, change bit 7 to 0
-        h263ByteArray[pos+6] &= ~(1 << 7);
+        //  Byte 4 is 28
+        h263ByteArray[pos+4] = 28;
+        //  Byte 5 is -32
+        h263ByteArray[pos+5] = (byte)-32;
+        //  Byte 6 is 1
+        h263ByteArray[pos+6] = 1;
+        //  Byte 7 is 0 or 4 depending on intra or inter frame
+        h263ByteArray[pos+7] = (byte)(info.frameType == 0 ? 0 : 4);
+        //  Byte 8 is 146
+        h263ByteArray[pos+8] = (byte)-110;
+        //  Byte 9 is 39
+        h263ByteArray[pos+9] = (byte)39;
+        //  Byte 10 is -42
+        h263ByteArray[pos+10] = (byte)-27;
+        //  Byte 11 is quantizer << 1
+        h263ByteArray[pos+11] = (byte)((info.quantizationParam >> 1) - 96);
+        //  Byte 12, change bit 6,7 to 0
+        h263ByteArray[pos+12] &= ~(1 << 6);
+        if((info.quantizationParam & 0x1) == 1){
+            h263ByteArray[pos+12] |= 1 << 7;
+        } else {
+            h263ByteArray[pos+12] &= ~(1 << 7);
+        }
+
 
         //  Package it back into a ParsableByteArray and return it.
         ParsableByteArray newArray = new ParsableByteArray(h263ByteArray);

@@ -56,7 +56,9 @@ JNIEXPORT jint JNICALL Java_net_butterflytv_rtmp_1client_RtmpClient_read
         (JNIEnv * env, jobject thiz, jbyteArray data_, jint offset, jint size) {
 
     char* data = malloc(size*sizeof(char));
-
+    if(!rtmp){
+        return -1;
+    }
     int readCount = RTMP_Read(rtmp, data, size);
 
     if (readCount > 0) {
@@ -107,8 +109,11 @@ JNIEXPORT jint JNICALL Java_net_butterflytv_rtmp_1client_RtmpClient_pause
  */
 JNIEXPORT jint JNICALL Java_net_butterflytv_rtmp_1client_RtmpClient_close
         (JNIEnv * env, jobject thiz) {
-	RTMP_Close(rtmp);
-	RTMP_Free(rtmp);
+    if(rtmp != NULL){
+        RTMP_Close(rtmp);
+        RTMP_Free(rtmp);
+        rtmp = NULL;
+    }
     return 0;
 }
 
