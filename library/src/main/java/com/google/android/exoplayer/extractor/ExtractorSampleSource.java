@@ -84,6 +84,8 @@ public final class ExtractorSampleSource implements SampleSource, SampleSourceRe
      */
     void onLoadError(int sourceId, IOException e);
 
+    void onLoadWarning(Exception e);
+
   }
 
   /**
@@ -753,6 +755,17 @@ public final class ExtractorSampleSource implements SampleSource, SampleSourceRe
         @Override
         public void run() {
           eventListener.onLoadError(eventSourceId, e);
+        }
+      });
+    }
+  }
+
+  public void notifyLoadWarning(final Exception e) {
+    if (eventHandler != null && eventListener != null) {
+      eventHandler.post(new Runnable()  {
+        @Override
+        public void run() {
+          eventListener.onLoadWarning(e);
         }
       });
     }

@@ -92,6 +92,7 @@ public class DemoPlayer implements ExoPlayer.Listener, ChunkSampleSource.EventLi
   public interface Listener {
     void onStateChanged(boolean playWhenReady, int playbackState);
     void onError(Exception e);
+    void onWarning(Exception e);
     void onVideoSizeChanged(int width, int height, int unappliedRotationDegrees,
         float pixelWidthHeightRatio);
   }
@@ -112,6 +113,7 @@ public class DemoPlayer implements ExoPlayer.Listener, ChunkSampleSource.EventLi
     void onDecoderInitializationError(DecoderInitializationException e);
     void onCryptoError(CryptoException e);
     void onLoadError(int sourceId, IOException e);
+    void onLoadWarning(Exception e);
     void onDrmSessionManagerError(Exception e);
   }
 
@@ -511,6 +513,16 @@ public class DemoPlayer implements ExoPlayer.Listener, ChunkSampleSource.EventLi
   public void onLoadError(int sourceId, IOException e) {
     if (internalErrorListener != null) {
       internalErrorListener.onLoadError(sourceId, e);
+    }
+  }
+
+  @Override
+  public void onLoadWarning(Exception e) {
+    if (internalErrorListener != null) {
+      internalErrorListener.onLoadWarning(e);
+    }
+    for (Listener listener : listeners) {
+      listener.onWarning(e);
     }
   }
 

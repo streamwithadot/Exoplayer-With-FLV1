@@ -452,6 +452,11 @@ public class PlayerActivity extends Activity implements SurfaceHolder.Callback, 
   }
 
   @Override
+  public void onWarning(Exception e) {
+
+  }
+
+  @Override
   public void onVideoSizeChanged(int width, int height, int unappliedRotationDegrees,
       float pixelWidthAspectRatio) {
     shutterView.setVisibility(View.GONE);

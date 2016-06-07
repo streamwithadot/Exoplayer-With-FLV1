@@ -76,6 +76,11 @@ public class EventLogger implements DemoPlayer.Listener, DemoPlayer.InfoListener
   }
 
   @Override
+  public void onWarning(Exception e) {
+    Log.e(TAG, "playerWarn [" + getSessionTimeString() + "]", e);
+  }
+
+  @Override
   public void onVideoSizeChanged(int width, int height, int unappliedRotationDegrees,
       float pixelWidthHeightRatio) {
     Log.d(TAG, "videoSizeChanged [" + width + ", " + height + ", " + unappliedRotationDegrees
@@ -132,6 +137,11 @@ public class EventLogger implements DemoPlayer.Listener, DemoPlayer.InfoListener
   @Override
   public void onLoadError(int sourceId, IOException e) {
     printInternalError("loadError", e);
+  }
+
+  @Override
+  public void onLoadWarning(Exception e) {
+
   }
 
   @Override

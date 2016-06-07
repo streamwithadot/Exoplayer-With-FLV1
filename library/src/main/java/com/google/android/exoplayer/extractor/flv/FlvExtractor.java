@@ -16,6 +16,7 @@
 package com.google.android.exoplayer.extractor.flv;
 
 import com.google.android.exoplayer.C;
+import com.google.android.exoplayer.chunk.ChunkExtractorWrapper;
 import com.google.android.exoplayer.extractor.Extractor;
 import com.google.android.exoplayer.extractor.ExtractorInput;
 import com.google.android.exoplayer.extractor.ExtractorOutput;
@@ -269,6 +270,8 @@ public final class FlvExtractor implements Extractor, SeekMap {
           H263PacketReader.H263PictureData info = new H263PacketReader.H263PictureData(data);
           data.setPosition(pos);
           if(info.version == 1){
+            ((ExtractorSampleSource)(extractorOutput))
+                    .notifyLoadWarning(new UnsupportedOperationException("Video track disabled"));
             //  Disable video if we are h263 with flv version 1.
             createOutputTrack(true, false);
             //  Weird hack needed to get out of buffering state.
