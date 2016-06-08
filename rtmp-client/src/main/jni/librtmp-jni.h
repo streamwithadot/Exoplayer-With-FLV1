@@ -52,7 +52,7 @@ JNIEXPORT jint JNICALL Java_net_butterflytv_rtmp_1client_RtmpClient_close
 
 JNIEXPORT jint JNICALL
 Java_net_butterflytv_rtmp_1client_RtmpClient_open(JNIEnv *env, jobject instance, jstring url,
-                                                   jboolean isPublishMode);
+                                                   jboolean isPublishMode, jboolean isLive);
 
 JNIEXPORT jint JNICALL
 Java_net_butterflytv_rtmp_1client_RtmpClient_isConnected(JNIEnv *env, jobject instance);

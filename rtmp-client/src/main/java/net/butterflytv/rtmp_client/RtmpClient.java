@@ -24,7 +24,7 @@ public class RtmpClient {
      *
      * returns 1 if it is successful
      */
-    public native int open(String url, boolean isPublishMode);
+    public native int open(String url, boolean isPublishMode, boolean isLive);
 
     /**
      * read data from rtmp connection

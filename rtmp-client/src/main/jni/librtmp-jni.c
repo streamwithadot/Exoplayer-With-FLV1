@@ -5,42 +5,48 @@
 // Created by faraklit on 01.01.2016.
 //
 
-RTMP *rtmp;
+RTMP *rtmp = NULL;
 /*
  * Class:     net_butterflytv_rtmp_client_RtmpClient
  * Method:    open
  * Signature: (Ljava/lang/String;)I
  */
 JNIEXPORT jint JNICALL Java_net_butterflytv_rtmp_1client_RtmpClient_open
-        (JNIEnv * env, jobject thiz, jstring url_, jboolean isPublishMode) {
-
+        (JNIEnv * env, jobject thiz, jstring url_, jboolean isPublishMode, jboolean isLive) {
     const char *url = (*env)->GetStringUTFChars(env, url_, 0);
-    rtmp = RTMP_Alloc();
-    if (rtmp == NULL) {
+    if(!(rtmp = RTMP_Alloc())){
+        rtmp = NULL;
         return -1;
     }
 
 	RTMP_Init(rtmp);
-	int ret = RTMP_SetupURL(rtmp, url);
 
-    if (!ret) {
+    if(!RTMP_SetupURL(rtmp, url)) {
         RTMP_Free(rtmp);
+        rtmp = NULL;
         return -2;
     }
-    if (isPublishMode) {
+
+    if(isLive) {
+        rtmp->Link.lFlags |= RTMP_LF_LIVE;
+    }
+
+    if(isPublishMode) {
         RTMP_EnableWrite(rtmp);
     }
 
-	ret = RTMP_Connect(rtmp, NULL);
-    if (!ret) {
+    if(!RTMP_Connect(rtmp, NULL)) {
         RTMP_Free(rtmp);
+        rtmp = NULL;
         return -3;
     }
-	ret = RTMP_ConnectStream(rtmp, 0);
 
-    if (!ret) {
+    if(!RTMP_ConnectStream(rtmp, 0)) {
+        RTMP_Free(rtmp);
+        rtmp = NULL;
         return -4;
     }
+
     (*env)->ReleaseStringUTFChars(env, url_, url);
     return 1;
 }
@@ -54,16 +60,16 @@ JNIEXPORT jint JNICALL Java_net_butterflytv_rtmp_1client_RtmpClient_open
  */
 JNIEXPORT jint JNICALL Java_net_butterflytv_rtmp_1client_RtmpClient_read
         (JNIEnv * env, jobject thiz, jbyteArray data_, jint offset, jint size) {
+    char* data = malloc(size * sizeof(char));
 
-    char* data = malloc(size*sizeof(char));
     if(!rtmp){
         return -1;
     }
-    int readCount = RTMP_Read(rtmp, data, size);
 
-    if (readCount > 0) {
-        (*env)->SetByteArrayRegion(env, data_, offset, readCount, data);  // copy
+    if (RTMP_Read(rtmp, data, size) > 0) {
+        (*env)->SetByteArrayRegion(env, data_, offset, readCount, data);
     }
+
     free(data);
 
  	return readCount;
@@ -76,7 +82,6 @@ JNIEXPORT jint JNICALL Java_net_butterflytv_rtmp_1client_RtmpClient_read
  */
 JNIEXPORT jint JNICALL Java_net_butterflytv_rtmp_1client_RtmpClient_write
         (JNIEnv * env, jobject thiz, jcharArray data, jint size) {
-
     return RTMP_Write(rtmp, data, size);
 }
 
@@ -87,7 +92,6 @@ JNIEXPORT jint JNICALL Java_net_butterflytv_rtmp_1client_RtmpClient_write
  */
 JNIEXPORT jint JNICALL Java_net_butterflytv_rtmp_1client_RtmpClient_seek
         (JNIEnv * env, jobject thiz, jint seekTime) {
-
     return 0;
 }
 
@@ -98,7 +102,6 @@ JNIEXPORT jint JNICALL Java_net_butterflytv_rtmp_1client_RtmpClient_seek
  */
 JNIEXPORT jint JNICALL Java_net_butterflytv_rtmp_1client_RtmpClient_pause
         (JNIEnv * env, jobject thiz, jint pauseTime) {
-
     return RTMP_Pause(rtmp, pauseTime);
 }
 
@@ -111,7 +114,6 @@ JNIEXPORT jint JNICALL Java_net_butterflytv_rtmp_1client_RtmpClient_close
         (JNIEnv * env, jobject thiz) {
     if(rtmp != NULL){
         RTMP_Close(rtmp);
-        RTMP_Free(rtmp);
         rtmp = NULL;
     }
     return 0;
@@ -120,12 +122,6 @@ JNIEXPORT jint JNICALL Java_net_butterflytv_rtmp_1client_RtmpClient_close
 
 JNIEXPORT jint JNICALL
 Java_net_butterflytv_rtmp_1client_RtmpClient_isConnected(JNIEnv *env, jobject instance) {
-     int connected = RTMP_IsConnected(rtmp);
-     if (connected) {
-        return 1;
-     }
-     else {
-        return 0;
-     }
+     return rtmp != NULL && RTMP_IsConnected(rtmp);
 }
 

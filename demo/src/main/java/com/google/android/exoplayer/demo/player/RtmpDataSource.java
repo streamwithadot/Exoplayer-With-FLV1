@@ -29,7 +29,6 @@ public class RtmpDataSource implements UriDataSource {
     @Override
     public long open(DataSpec dataSpec) throws IOException {
         uri = dataSpec.uri.toString();
-        //opened = rtmpClient.open(dataSpec.uri.toString(), false) >= 0;
         return C.LENGTH_UNBOUNDED;
     }
 
@@ -42,7 +41,7 @@ public class RtmpDataSource implements UriDataSource {
     @Override
     public int read(byte[] buffer, int offset, int readLength) throws IOException {
         if(!opened){
-            opened = rtmpClient.open(uri, false) >= 0;
+            opened = rtmpClient.open(uri, false, true) >= 0;
         }
         if(opened){
             return rtmpClient.read(buffer, offset, readLength);
