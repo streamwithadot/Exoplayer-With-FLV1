@@ -34,7 +34,9 @@ public class RtmpDataSource implements UriDataSource {
     @Override
     public void close() throws IOException {
         synchronized (lock){
-            rtmpClient.close();
+            if(rtmpClient.isConnected() == 1){
+                rtmpClient.close();
+            }
             opened = false;
         }
     }
@@ -43,7 +45,9 @@ public class RtmpDataSource implements UriDataSource {
     public int read(byte[] buffer, int offset, int readLength) throws IOException {
         synchronized (lock){
             if(!opened){
-                opened = rtmpClient.open(uri, false, true) >= 0;
+                if(rtmpClient.open(uri, false, true) >= 0 && rtmpClient.isConnected() == 1){
+                    opened = true;
+                }
             }
             if(opened){
                 return rtmpClient.read(buffer, offset, readLength);
