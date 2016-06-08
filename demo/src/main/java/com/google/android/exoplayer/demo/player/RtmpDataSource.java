@@ -12,8 +12,7 @@ import java.io.IOException;
  * Created by faraklit on 08.01.2016.
  */
 public class RtmpDataSource implements UriDataSource {
-
-
+    private static final Object lock = new Object();
     private final RtmpClient rtmpClient;
     private String uri;
     boolean opened = false;
@@ -34,18 +33,22 @@ public class RtmpDataSource implements UriDataSource {
 
     @Override
     public void close() throws IOException {
-        rtmpClient.close();
-        opened = false;
+        synchronized (lock){
+            rtmpClient.close();
+            opened = false;
+        }
     }
 
     @Override
     public int read(byte[] buffer, int offset, int readLength) throws IOException {
-        if(!opened){
-            opened = rtmpClient.open(uri, false, true) >= 0;
+        synchronized (lock){
+            if(!opened){
+                opened = rtmpClient.open(uri, false, true) >= 0;
+            }
+            if(opened){
+                return rtmpClient.read(buffer, offset, readLength);
+            }
+            throw new IOException("Couldn't open stream.");
         }
-        if(opened){
-            return rtmpClient.read(buffer, offset, readLength);
-        }
-        throw new IOException("Couldn't open stream.");
     }
 }

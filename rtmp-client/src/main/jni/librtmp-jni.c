@@ -1,6 +1,7 @@
 #include <malloc.h>
 #include "librtmp-jni.h"
 #include "rtmp.h"
+#include "librtmp/log.h"
 //
 // Created by faraklit on 01.01.2016.
 //
@@ -66,7 +67,8 @@ JNIEXPORT jint JNICALL Java_net_butterflytv_rtmp_1client_RtmpClient_read
         return -1;
     }
 
-    if (RTMP_Read(rtmp, data, size) > 0) {
+    int readCount = 0;
+    if ((readCount = RTMP_Read(rtmp, data, size)) > 0) {
         (*env)->SetByteArrayRegion(env, data_, offset, readCount, data);
     }
 
