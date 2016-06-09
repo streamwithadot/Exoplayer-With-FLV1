@@ -2,9 +2,6 @@
 #include "librtmp-jni.h"
 #include "rtmp.h"
 #include "librtmp/log.h"
-#include <android/log.h>
-#define LOG_TAG "RTMPLOG"
-#define LOGI(...)  __android_log_print(ANDROID_LOG_INFO,LOG_TAG,__VA_ARGS__)
 
 //
 // Created by faraklit on 01.01.2016.
@@ -23,10 +20,8 @@ JNIEXPORT jint JNICALL Java_net_butterflytv_rtmp_1client_RtmpClient_open
         rtmp = NULL;
         return -1;
     }
-    LOGI("INIT!");
 	RTMP_Init(rtmp);
-    LOGI("SETUPURL!");
-    if(!RTMP_SetupURL(rtmp, url)) {
+    if(!RTMP_SetupURL(rtmp, (char *) url)) {
         RTMP_Free(rtmp);
         rtmp = NULL;
         return -2;
@@ -37,22 +32,18 @@ JNIEXPORT jint JNICALL Java_net_butterflytv_rtmp_1client_RtmpClient_open
     }
 
     if(isPublishMode) {
-        LOGI("ENABLEWRITE!");
         RTMP_EnableWrite(rtmp);
     }
-    LOGI("CONNECT!");
     if(!RTMP_Connect(rtmp, NULL)) {
         RTMP_Free(rtmp);
         rtmp = NULL;
         return -3;
     }
-    LOGI("CONNECTSTREAM!");
     if(!RTMP_ConnectStream(rtmp, 0)) {
         RTMP_Free(rtmp);
         rtmp = NULL;
         return -4;
     }
-    LOGI("DONE OPENING!");
     (*env)->ReleaseStringUTFChars(env, url_, url);
     return 1;
 }
@@ -73,7 +64,6 @@ JNIEXPORT jint JNICALL Java_net_butterflytv_rtmp_1client_RtmpClient_read
     }
 
     int readCount = 0;
-    LOGI("READ!");
     if ((readCount = RTMP_Read(rtmp, data, size)) > 0) {
         (*env)->SetByteArrayRegion(env, data_, offset, readCount, data);
     }
@@ -121,7 +111,6 @@ JNIEXPORT jint JNICALL Java_net_butterflytv_rtmp_1client_RtmpClient_pause
 JNIEXPORT jint JNICALL Java_net_butterflytv_rtmp_1client_RtmpClient_close
         (JNIEnv * env, jobject thiz) {
     if(rtmp != NULL){
-        LOGI("CLOSE!");
         RTMP_Close(rtmp);
         rtmp = NULL;
     }

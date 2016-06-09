@@ -15,7 +15,7 @@ buildscript {
 model {
 
     android {
-        compileSdkVersion = 23
+        compileSdkVersion = 20
         buildToolsVersion = "23.0.2"
     }
 
