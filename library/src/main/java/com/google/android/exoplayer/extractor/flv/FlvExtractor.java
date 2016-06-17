@@ -281,8 +281,9 @@ public final class FlvExtractor implements Extractor, SeekMap {
             videoReader.consume(data, tagTimestampUs);
           }
         } else {
+          data.setPosition(pos);
           createOutputTrack(true, true);
-          videoReader.consume(data, tagTimestampUs);
+          throw new UnsupportedOperationException("Ignore me.");
         }
       } else if(videoReader != null){
         videoReader.consume(prepareTagData(input), tagTimestampUs);

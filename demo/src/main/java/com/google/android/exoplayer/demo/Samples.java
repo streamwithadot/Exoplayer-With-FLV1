@@ -249,7 +249,7 @@ import java.util.Locale;
     new Sample("Big Buck Bunny (FLV Video)",
         "http://vod.leasewebcdn.com/bbb.flv?ri=1024&rs=150&start=0", Util.TYPE_OTHER),
     new Sample("Ardrone Live Stream(FLV Video via RTMP)",
-                  "rtmp://rtmp.stre.am:1935/stream/db372275-1332-48bb-8490-780c98a522b5", Util.TYPE_OTHER),
+                  "rtmp://rtmp.stre.am:1935/stream/f09b1c42-1540-475d-b729-20c3fc04354d", Util.TYPE_OTHER),
 
     new Sample("OSSR net RTMP Live Stream",
             "rtmp://ossrs.net:1935/live/livestream", Util.TYPE_OTHER),
