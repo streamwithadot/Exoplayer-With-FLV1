@@ -107,6 +107,7 @@ public final class FlvExtractor implements Extractor, SeekMap {
     input.peekFully(scratch.data, 0, 4);
     scratch.setPosition(0);
     int dataOffset = scratch.readInt();
+    dataOffset = 9;
 
     input.resetPeekPosition();
     input.advancePeekPosition(dataOffset);
