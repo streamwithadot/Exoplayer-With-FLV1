@@ -241,7 +241,8 @@ import java.util.Locale;
         + "513F28C7FDCBEC60A66C86C9A393556C99DC47FB.04C88036EEE12565A1ED864A87 5A58F15D8B5300"
         + "&key=ik0", Util.TYPE_OTHER),
     new Sample("Google Play (MP3 Audio)",
-        "http://storage.googleapis.com/exoplayer-test-media-0/play.mp3", Util.TYPE_OTHER),
+        "http://storage.googleapis.com/exoplayer-test-media-0/play." +
+                "mp3", Util.TYPE_OTHER),
     new Sample("Google Play (Ogg/Vorbis Audio)",
         "https://storage.googleapis.com/exoplayer-test-media-1/ogg/play.ogg", Util.TYPE_OTHER),
     new Sample("Google Glass (WebM Video with Vorbis Audio)",
@@ -249,10 +250,10 @@ import java.util.Locale;
     new Sample("Big Buck Bunny (FLV Video)",
         "http://vod.leasewebcdn.com/bbb.flv?ri=1024&rs=150&start=0", Util.TYPE_OTHER),
     new Sample("Ardrone Live Stream(FLV Video via RTMP)",
-                  "rtmp://media-001.v2dev.stre.am:1935/stream/8e77d47c-faed-4ca8-8a47-aa35b488974b", Util.TYPE_OTHER),
+                  "rtmp://rtmp.stre.am:1935/live/4c51faee-446d-42ed-8b37-de0e63c23065", Util.TYPE_OTHER),
 
     new Sample("OSSR net RTMP Live Stream",
-            "rtmp://ossrs.net:1935/live/livestream", Util.TYPE_OTHER),
+            "udp://10.5.5.9:8554", Util.TYPE_OTHER),
   };
 
   private Samples() {}

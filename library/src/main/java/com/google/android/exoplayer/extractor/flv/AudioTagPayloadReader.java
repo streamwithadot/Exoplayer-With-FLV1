@@ -33,6 +33,10 @@ import java.util.Collections;
 
   // Audio format
   private static final int AUDIO_FORMAT_AAC = 10;
+  private static final int AUDIO_FORMAT_MP3 = 2;
+
+  private String mimeType;
+  private int sampleRate;
 
   // AAC PACKET TYPE
   private static final int AAC_PACKET_TYPE_SEQUENCE_HEADER = 0;
@@ -65,10 +69,21 @@ import java.util.Collections;
       if (sampleRateIndex < 0 || sampleRateIndex >= AUDIO_SAMPLING_RATE_TABLE.length) {
         throw new UnsupportedFormatException("Invalid sample rate index: " + sampleRateIndex);
       }
-      // TODO: Add support for MP3 and PCM.
-      if (audioFormat != AUDIO_FORMAT_AAC) {
-        throw new UnsupportedFormatException("Audio format not supported: " + audioFormat);
+
+      sampleRate = AUDIO_SAMPLING_RATE_TABLE[sampleRateIndex];
+
+      // TODO: Add support for PCM.
+      switch(audioFormat) {
+        case AUDIO_FORMAT_AAC:
+          mimeType = MimeTypes.AUDIO_AAC;
+          break;
+        case AUDIO_FORMAT_MP3:
+          mimeType = MimeTypes.AUDIO_MPEG;
+          break;
+        default:
+          throw new UnsupportedFormatException("Audio format not supported: " + audioFormat);
       }
+
       hasParsedAudioDataHeader = true;
     } else {
       // Skip header if it was parsed previously.
@@ -79,24 +94,37 @@ import java.util.Collections;
 
   @Override
   protected void parsePayload(ParsableByteArray data, long timeUs) {
-    int packetType = data.readUnsignedByte();
-    // Parse sequence header just in case it was not done before.
-    if (packetType == AAC_PACKET_TYPE_SEQUENCE_HEADER && !hasOutputFormat) {
-      byte[] audioSpecifiConfig = new byte[data.bytesLeft()];
-      data.readBytes(audioSpecifiConfig, 0, audioSpecifiConfig.length);
-      Pair<Integer, Integer> audioParams = CodecSpecificDataUtil.parseAacAudioSpecificConfig(
-          audioSpecifiConfig);
-      MediaFormat mediaFormat = MediaFormat.createAudioFormat(null, MimeTypes.AUDIO_AAC,
-          MediaFormat.NO_VALUE, MediaFormat.NO_VALUE, getDurationUs(), audioParams.second,
-          audioParams.first, Collections.singletonList(audioSpecifiConfig), null);
-      output.format(mediaFormat);
-      hasOutputFormat = true;
-    } else if (packetType == AAC_PACKET_TYPE_AAC_RAW) {
-      // Sample audio AAC frames
-      int bytesToWrite = data.bytesLeft();
-      output.sampleData(data, bytesToWrite);
-      output.sampleMetadata(timeUs, C.SAMPLE_FLAG_SYNC, bytesToWrite, 0, null);
+    if(mimeType.equals(MimeTypes.AUDIO_AAC)) {
+      int packetType = data.readUnsignedByte();
+      // Parse sequence header just in case it was not done before.
+      if (packetType == AAC_PACKET_TYPE_SEQUENCE_HEADER && !hasOutputFormat) {
+        byte[] audioSpecifiConfig = new byte[data.bytesLeft()];
+        data.readBytes(audioSpecifiConfig, 0, audioSpecifiConfig.length);
+        Pair<Integer, Integer> audioParams = CodecSpecificDataUtil.parseAacAudioSpecificConfig(
+                audioSpecifiConfig);
+        MediaFormat mediaFormat = MediaFormat.createAudioFormat(null, mimeType,
+                MediaFormat.NO_VALUE, MediaFormat.NO_VALUE, getDurationUs(), audioParams.second,
+                audioParams.first, Collections.singletonList(audioSpecifiConfig), null);
+        output.format(mediaFormat);
+        hasOutputFormat = true;
+      } else if (packetType == AAC_PACKET_TYPE_AAC_RAW) {
+        // Sample audio AAC frames
+        int bytesToWrite = data.bytesLeft();
+        output.sampleData(data, bytesToWrite);
+        output.sampleMetadata(timeUs, C.SAMPLE_FLAG_SYNC, bytesToWrite, 0, null);
+      }
+    } else if(mimeType.equals(MimeTypes.AUDIO_MPEG)){
+      if(!hasOutputFormat) {
+        MediaFormat mediaFormat = MediaFormat.createAudioFormat(null, mimeType,
+                MediaFormat.NO_VALUE, MediaFormat.NO_VALUE, getDurationUs(), 1, sampleRate, null, null);
+        output.format(mediaFormat);
+        hasOutputFormat = true;
+      } else {
+        // Sample audio MP3 frames
+        int bytesToWrite = data.bytesLeft();
+        output.sampleData(data, bytesToWrite);
+        output.sampleMetadata(timeUs, C.SAMPLE_FLAG_SYNC, bytesToWrite, 0, null);
+      }
     }
   }
-
 }
