@@ -52,7 +52,7 @@ public class AVCPacketReader implements VideoTagPayloadReader.VideoPacketReader{
                     avcData.pixelWidthAspectRatio);
             reader.output.format(mediaFormat);
             hasOutputFormat = true;
-        } else if (packetType == AVC_PACKET_TYPE_AVC_NALU) {
+        } else if (packetType == AVC_PACKET_TYPE_AVC_NALU && hasOutputFormat) {
             // TODO: Deduplicate with Mp4Extractor.
             // Zero the top three bytes of the array that we'll use to parse nal unit lengths, in case
             // they're only 1 or 2 bytes long.
@@ -60,6 +60,9 @@ public class AVCPacketReader implements VideoTagPayloadReader.VideoPacketReader{
             nalLengthData[0] = 0;
             nalLengthData[1] = 0;
             nalLengthData[2] = 0;
+            if(nalUnitLengthFieldLength == 0) {
+              nalUnitLengthFieldLength = 4; // Sanity sake so we don't run into OOM.
+            }
             int nalUnitLengthFieldLengthDiff = 4 - nalUnitLengthFieldLength;
             // NAL units are length delimited, but the decoder requires start code delimited units.
             // Loop until we've written the sample to the track output, replacing length delimiters with
