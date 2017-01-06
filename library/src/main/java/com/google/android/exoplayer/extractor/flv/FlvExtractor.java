@@ -26,6 +26,7 @@ import com.google.android.exoplayer.extractor.SeekMap;
 import com.google.android.exoplayer.util.ParsableByteArray;
 import com.google.android.exoplayer.util.Util;
 
+import java.awt.font.TextAttribute;
 import java.io.IOException;
 import java.util.List;
 
@@ -76,9 +77,10 @@ public final class FlvExtractor implements Extractor, SeekMap {
   private List<Double> keyFrameTimes;
   private List<Double> keyFramePositions;
 
-  // We need to make sure if it is H263 video that the flv version is 0.
-  boolean waitingForFirstVideoFrame = true;
   boolean hasAudio = false;
+  boolean hasVideo = false;
+
+  int tagsParsed = 0;
 
   public FlvExtractor() {
     scratch = new ParsableByteArray(4);
@@ -88,8 +90,7 @@ public final class FlvExtractor implements Extractor, SeekMap {
     parserState = STATE_READING_FLV_HEADER;
   }
 
-  @Override
-  public boolean sniff(ExtractorInput input) throws IOException, InterruptedException {
+  @Override public boolean sniff(ExtractorInput input) throws IOException, InterruptedException {
     // Check if file starts with "FLV" tag
     input.peekFully(scratch.data, 0, 3);
     scratch.setPosition(0);
@@ -187,20 +188,15 @@ public final class FlvExtractor implements Extractor, SeekMap {
 
     headerBuffer.setPosition(0);
     headerBuffer.skipBytes(4);
-    int flags = headerBuffer.readUnsignedByte();
-    hasAudio = (flags & 0x04) != 0;
-    boolean hasVideo = (flags & 0x01) != 0;
+    headerBuffer.readUnsignedByte();
 
-    if(hasAudio && !hasVideo && waitingForFirstVideoFrame){
-      createOutputTrack(true, false);
-    }
     // We need to skip any additional content in the FLV header, plus the 4 byte previous tag size.
     bytesToNextTagHeader = headerBuffer.readInt() - FLV_HEADER_SIZE + 4;
     parserState = STATE_SKIPPING_TO_TAG_HEADER;
     return true;
   }
 
-  private void createOutputTrack(boolean hasAudio, boolean hasVideo){
+  private void createOutputTrack(boolean hasAudio, boolean hasVideo) {
     if (hasAudio && audioReader == null) {
       audioReader = new AudioTagPayloadReader(extractorOutput.track(TAG_TYPE_AUDIO));
     }
@@ -212,8 +208,8 @@ public final class FlvExtractor implements Extractor, SeekMap {
     }
     extractorOutput.endTracks();
     extractorOutput.seekMap(this);
-    waitingForFirstVideoFrame = false;
   }
+
   /**
    * Skips over data to reach the next tag header.
    *
@@ -261,60 +257,59 @@ public final class FlvExtractor implements Extractor, SeekMap {
    */
   private boolean readTagData(ExtractorInput input) throws IOException, InterruptedException {
     boolean wasConsumed = true;
-    if (tagType == TAG_TYPE_AUDIO && audioReader != null) {
-      audioReader.consume(prepareTagData(input), tagTimestampUs);
-    } else if (tagType == TAG_TYPE_VIDEO) {
-      if(waitingForFirstVideoFrame){
-        ParsableByteArray data = prepareTagData(input);
+    tagsParsed++;
+    if (tagsParsed < 5) {
+      ParsableByteArray data = prepareTagData(input);
+      if (tagType == TAG_TYPE_AUDIO) {
+        hasAudio = true;
+      }
+      if (tagType == TAG_TYPE_VIDEO) {
+        hasVideo = true;
         int pos = data.getPosition();
         int codec = VideoTagPayloadReader.getCodec(data);
-        if(codec == VideoTagPayloadReader.VIDEO_CODEC_H263){
+        if (codec == VideoTagPayloadReader.VIDEO_CODEC_H263) {
           H263PacketReader.H263PictureData info = new H263PacketReader.H263PictureData(data);
           data.setPosition(pos);
-          if(info.version == 1){
-            ((ExtractorSampleSource)(extractorOutput))
-                    .notifyLoadWarning(new UnsupportedOperationException("Video track disabled"));
-            //  Disable video if we are h263 with flv version 1.
-            createOutputTrack(true, false);
-            //  Weird hack needed to get out of buffering state.
-            throw new UnsupportedOperationException("Ignore me.");
+          if (info.version == 1) {
+            ((ExtractorSampleSource) (extractorOutput)).notifyLoadWarning(
+                new UnsupportedOperationException("Video track disabled"));
+            hasVideo = false;
           } else {
-            createOutputTrack(true, true);
-            videoReader.consume(data, tagTimestampUs);
+            hasVideo = true;
           }
-        } else {
-          data.setPosition(pos);
-          createOutputTrack(hasAudio, true);
-          videoReader.consume(data, tagTimestampUs);
-          throw new UnsupportedOperationException("Ignore me.");
         }
-      } else if(videoReader != null){
+      }
+    } else if (tagsParsed == 5) {
+      createOutputTrack(hasAudio, hasVideo);
+      prepareTagData(input);
+      throw new UnsupportedOperationException("Ignore me.");
+    } else {
+      if (tagType == TAG_TYPE_AUDIO && audioReader != null) {
+        audioReader.consume(prepareTagData(input), tagTimestampUs);
+      } else if (tagType == TAG_TYPE_VIDEO && videoReader != null) {
         videoReader.consume(prepareTagData(input), tagTimestampUs);
+      } else if (tagType == TAG_TYPE_SCRIPT_DATA && metadataReader != null) {
+        metadataReader.consume(prepareTagData(input), tagTimestampUs);
+        if (metadataReader.getDurationUs() != C.UNKNOWN_TIME_US) {
+          if (audioReader != null) {
+            audioReader.setDurationUs(metadataReader.getDurationUs());
+          }
+          if (videoReader != null) {
+            videoReader.setDurationUs(metadataReader.getDurationUs());
+          }
+        }
       } else {
         input.skipFully(tagDataSize);
         wasConsumed = false;
       }
-    } else if (tagType == TAG_TYPE_SCRIPT_DATA && metadataReader != null) {
-      metadataReader.consume(prepareTagData(input), tagTimestampUs);
-      if (metadataReader.getDurationUs() != C.UNKNOWN_TIME_US) {
-        if (audioReader != null) {
-          audioReader.setDurationUs(metadataReader.getDurationUs());
-        }
-        if (videoReader != null) {
-          videoReader.setDurationUs(metadataReader.getDurationUs());
-        }
-      }
-    } else {
-      input.skipFully(tagDataSize);
-      wasConsumed = false;
     }
     bytesToNextTagHeader = 4; // There's a 4 byte previous tag size before the next header.
     parserState = STATE_SKIPPING_TO_TAG_HEADER;
     return wasConsumed;
   }
 
-  private ParsableByteArray prepareTagData(ExtractorInput input) throws IOException,
-      InterruptedException {
+  private ParsableByteArray prepareTagData(ExtractorInput input)
+      throws IOException, InterruptedException {
     if (tagDataSize > tagData.capacity()) {
       tagData.reset(new byte[Math.max(tagData.capacity() * 2, tagDataSize)], 0);
     } else {
@@ -327,34 +322,30 @@ public final class FlvExtractor implements Extractor, SeekMap {
 
   // SeekMap implementation.
 
-  @Override
-  public boolean isSeekable() {
+  @Override public boolean isSeekable() {
     keyFrameTimes = metadataReader.getKeyFrameTimes();
     keyFramePositions = metadataReader.getKeyFrameFilePositions();
 
-    return (keyFrameTimes != null) && (keyFramePositions != null) && (keyFramePositions.size() == keyFrameTimes.size());
+    return (keyFrameTimes != null) && (keyFramePositions != null) && (keyFramePositions.size()
+        == keyFrameTimes.size());
   }
 
-  @Override
-  public long getPosition(long timeUs) {
-
+  @Override public long getPosition(long timeUs) {
 
     double timeMs = timeUs / 1000000;
     if (keyFrameTimes != null && keyFramePositions != null) {
 
       for (int i = 0; i < keyFrameTimes.size(); i++) {
         if (keyFrameTimes.get(i) > timeMs) {
-          int index = i-1;
+          int index = i - 1;
           if (i == 0) {
             index = 0;
           }
-          return (long)((double)keyFramePositions.get(index));
+          return (long) ((double) keyFramePositions.get(index));
         }
       }
     }
 
     return 0;
-
   }
-
 }
