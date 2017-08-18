@@ -16,7 +16,6 @@
 package com.google.android.exoplayer.extractor.flv;
 
 import com.google.android.exoplayer.C;
-import com.google.android.exoplayer.chunk.ChunkExtractorWrapper;
 import com.google.android.exoplayer.extractor.Extractor;
 import com.google.android.exoplayer.extractor.ExtractorInput;
 import com.google.android.exoplayer.extractor.ExtractorOutput;
@@ -26,7 +25,6 @@ import com.google.android.exoplayer.extractor.SeekMap;
 import com.google.android.exoplayer.util.ParsableByteArray;
 import com.google.android.exoplayer.util.Util;
 
-import java.awt.font.TextAttribute;
 import java.io.IOException;
 import java.util.List;
 
@@ -69,6 +67,8 @@ public final class FlvExtractor implements Extractor, SeekMap {
   public int tagType;
   public int tagDataSize;
   public long tagTimestampUs;
+  private long tagTimestampOffsetUs;
+  private long previousAdjustedTimestamp;
 
   // Tags readers.
   private AudioTagPayloadReader audioReader;
@@ -284,12 +284,23 @@ public final class FlvExtractor implements Extractor, SeekMap {
       prepareTagData(input);
       throw new UnsupportedOperationException("Ignore me.");
     } else {
+      long adjustedTimestamp;
+      if (tagTimestampUs > 0) {
+        if (tagTimestampOffsetUs == 0 || tagTimestampUs < tagTimestampOffsetUs) {
+          tagTimestampOffsetUs = tagTimestampUs;
+        }
+        adjustedTimestamp = Math.max(0, tagTimestampUs - tagTimestampOffsetUs);
+      } else {
+        adjustedTimestamp = previousAdjustedTimestamp;
+      }
+      previousAdjustedTimestamp = adjustedTimestamp;
+
       if (tagType == TAG_TYPE_AUDIO && audioReader != null) {
-        audioReader.consume(prepareTagData(input), tagTimestampUs);
+        audioReader.consume(prepareTagData(input), adjustedTimestamp);
       } else if (tagType == TAG_TYPE_VIDEO && videoReader != null) {
-        videoReader.consume(prepareTagData(input), tagTimestampUs);
+        videoReader.consume(prepareTagData(input), adjustedTimestamp);
       } else if (tagType == TAG_TYPE_SCRIPT_DATA && metadataReader != null) {
-        metadataReader.consume(prepareTagData(input), tagTimestampUs);
+        metadataReader.consume(prepareTagData(input), adjustedTimestamp);
         if (metadataReader.getDurationUs() != C.UNKNOWN_TIME_US) {
           if (audioReader != null) {
             audioReader.setDurationUs(metadataReader.getDurationUs());
